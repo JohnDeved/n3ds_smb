@@ -19,6 +19,43 @@ class Shell(cmd.Cmd):
     def _r(self, arg):
         return ntpath.normpath(ntpath.join(self.cwd, arg)) if arg else self.cwd
 
+    def do_help(self, arg):
+        """help [command] -- show command help or command list"""
+        if arg:
+            return super().do_help(arg)
+
+        cmds = []
+        aliases = {"EOF", "exit", "q"}
+        seen = set()
+        for name in sorted(n[3:] for n in dir(self) if n.startswith("do_")):
+            if name.startswith("_"):
+                continue
+            if name in aliases:
+                continue
+            func = getattr(self, f"do_{name}", None)
+            if not callable(func):
+                continue
+            key = getattr(func, "__func__", func)
+            if key in seen:
+                continue
+            seen.add(key)
+            doc = (func.__doc__ or "").strip().splitlines()
+            first = doc[0] if doc else name
+            if " -- " in first:
+                usage, desc = first.split(" -- ", 1)
+            else:
+                usage, desc = first, ""
+            cmds.append((usage, desc))
+
+        print("  Commands:")
+        width = max((len(usage) for usage, _ in cmds), default=0)
+        for usage, desc in cmds:
+            if desc:
+                print(f"    {usage:<{width}} -- {desc}")
+            else:
+                print(f"    {usage}")
+        print("\n  Use 'help <command>' for details.")
+
     def do_ls(self, arg):
         """ls [path] -- list directory contents"""
         try:
