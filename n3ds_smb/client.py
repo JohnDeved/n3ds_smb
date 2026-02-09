@@ -1,6 +1,6 @@
 """N3DSClient — SMB1 file operations for the New Nintendo 3DS microSD share."""
 
-import io, socket, struct
+import socket, struct
 
 from n3ds_smb.transport import (
     AUTH_BLOB,
@@ -196,24 +196,57 @@ class N3DSClient:
         self.close_file(self.open_file(path, access=0x1F01FF, disp=2, opts=1, attrs=0))
 
     def delete(self, path):
-        self.close_file(self.open_file(path, access=0x10000, disp=1, opts=0x1000))
+        """Delete a file using SMB_COM_DELETE (0x06)."""
+        words = struct.pack("<H", 0x0006)  # SearchAttributes: hidden+system
+        bdata = b"\x04" + path.encode("utf-16le") + b"\x00\x00"
+        h, _ = self.t.cmd(0x06, words, bdata, tid=self.tid, uid=self.uid)
+        if h["status"]:
+            raise OSError(f"delete failed: 0x{h['status']:08X}")
 
     def rename(self, old, new):
-        """SMB_COM_RENAME is broken on 3DS; emulate via copy + delete."""
-        buf = io.BytesIO()
-        self.get_file(old, buf)
-        buf.seek(0)
-        self.put_file(new, buf)
-        self.delete(old)
+        """Rename/move a file using SMB_COM_RENAME (0x07)."""
+        words = struct.pack("<H", 0x0006)  # SearchAttributes: hidden+system
+        old_enc = old.encode("utf-16le") + b"\x00\x00"
+        new_enc = new.encode("utf-16le") + b"\x00\x00"
+        # First string: BufferFormat(0x04) + UTF-16LE old name
+        part1 = b"\x04" + old_enc
+        # Second string needs Unicode alignment padding after BufferFormat byte.
+        # Position of second string data = hdr(32)+wc(1)+words(2)+bc(2) + part1 + 0x04 + 1
+        pos = 37 + len(part1) + 1
+        pad = b"\x00" if (pos % 2) else b""
+        part2 = b"\x04" + pad + new_enc
+        h, _ = self.t.cmd(0x07, words, part1 + part2, tid=self.tid, uid=self.uid)
+        if h["status"]:
+            raise OSError(f"rename failed: 0x{h['status']:08X}")
+
+    def echo(self):
+        """Ping the server using SMB_COM_ECHO (0x2B). Returns True if alive."""
+        words = struct.pack("<H", 1)  # EchoCount = 1
+        h, _ = self.t.cmd(0x2B, words, b"PING", tid=self.tid, uid=self.uid)
+        return h["status"] == 0
+
+    def disk_info(self):
+        """Query filesystem info via TRANS2_QUERY_FS_INFORMATION.
+
+        Returns dict with total/free bytes or None on failure.
+        Uses level 0x0103 (FileFsSizeInformation): returns 24 bytes
+        containing TotalAllocationUnits(Q), AvailableAllocationUnits(Q),
+        SectorsPerAllocationUnit(I), BytesPerSector(I).
+        """
+        params = struct.pack("<H", 0x0103)
+        st, _, dd = self._trans2(0x0003, params)
+        if st or len(dd) < 24:
+            return None
+        total_au, avail_au, sec_per_au, bytes_per_sec = struct.unpack_from("<QQiI", dd)
+        return {
+            "total_bytes": total_au * sec_per_au * bytes_per_sec,
+            "free_bytes": avail_au * sec_per_au * bytes_per_sec,
+        }
 
     def rmdir(self, path):
-        h, _ = self.t.cmd(
-            0x01,
-            b"",
-            b"\x00" + path.encode("utf-16le") + b"\x00\x00",
-            tid=self.tid,
-            uid=self.uid,
-        )
+        """Remove an empty directory using SMB_COM_DELETE_DIRECTORY (0x01)."""
+        bdata = b"\x04" + path.encode("utf-16le") + b"\x00\x00"
+        h, _ = self.t.cmd(0x01, b"", bdata, tid=self.tid, uid=self.uid)
         if h["status"]:
             raise OSError(f"rmdir failed: 0x{h['status']:08X}")
 

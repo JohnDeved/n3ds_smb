@@ -106,7 +106,7 @@ class Shell(cmd.Cmd):
             print(f"  error: {e}")
 
     def do_mv(self, arg):
-        """mv <old> <new> -- rename/move file (copies + deletes)"""
+        """mv <old> <new> -- rename/move file"""
         parts = arg.split(None, 1)
         if len(parts) != 2:
             print("  usage: mv <old> <new>")
@@ -133,6 +133,33 @@ class Shell(cmd.Cmd):
                 self._tree(ntpath.join(path, e["name"]), indent + "  ")
             else:
                 print(f"{indent}{name}  ({e['size']:,})")
+
+    def do_df(self, _):
+        """df -- show disk usage"""
+        try:
+            info = self.c.disk_info()
+            if info:
+                total = info["total_bytes"]
+                free = info["free_bytes"]
+                used = total - free
+                pct = used / total * 100 if total else 0
+                print(f"  Total: {total / 1024**3:.2f} GB")
+                print(f"  Used:  {used / 1024**3:.2f} GB ({pct:.1f}%)")
+                print(f"  Free:  {free / 1024**3:.2f} GB")
+            else:
+                print("  error: could not query disk info")
+        except Exception as e:
+            print(f"  error: {e}")
+
+    def do_ping(self, _):
+        """ping -- check if 3DS server is alive"""
+        try:
+            if self.c.echo():
+                print("  pong")
+            else:
+                print("  no response")
+        except Exception as e:
+            print(f"  error: {e}")
 
     def do_quit(self, _):
         """quit -- exit the shell"""

@@ -60,6 +60,8 @@ Shell commands:
 | `rm <file>` | Delete a file |
 | `rmdir <path>` | Remove an empty directory |
 | `mv <old> <new>` | Rename/move a file |
+| `ping` | Send SMB echo request |
+| `df` | Show total/used/free space |
 | `tree [path]` | Recursive directory listing |
 | `quit` | Exit |
 
@@ -118,7 +120,7 @@ The 3DS microSD Management exposes an **SMB1** file server on TCP port 139. This
 - **File operations** — TRANS2 directory listing, NT_CREATE_ANDX, read, write, close
 
 Notable quirks of the 3DS SMB implementation:
-- `SMB_COM_DELETE` and `SMB_COM_RENAME` are broken — workarounds are implemented
+- `SMB_COM_DELETE` and `SMB_COM_RENAME` work, but require strict Unicode alignment around `BufferFormat` bytes
 - Single TCP connection at a time — the 3DS only handles one client
 - Auth bypass — no credentials are ever verified
 
@@ -127,7 +129,7 @@ Notable quirks of the 3DS SMB implementation:
 See [exploits.md](exploits.md) for detailed findings from reverse-engineering the 3DS SMB server, including:
 
 - SPNEGO authentication bypass
-- Broken DELETE/RENAME commands and workarounds
+- DELETE/RENAME Unicode alignment gotchas (and the now-correct native implementation)
 - Tree Connect name oracle
 - NetBIOS session handler bugs (including a remote DoS)
 - Dual NTLM code paths and patched overflow analysis
