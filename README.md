@@ -1,6 +1,6 @@
 # n3ds_smb
 
-Zero-dependency Python SMB1 client for the New Nintendo 3DS **microSD Management** feature.
+Python SMB1 client for the New Nintendo 3DS **microSD Management** feature.
 
 Automatically discovers the 3DS on your local network via WS-Discovery, connects to the microSD share over WiFi, and provides an interactive file browser shell - no configuration needed.
 
@@ -30,7 +30,8 @@ Type 'help' for commands.
 ## Requirements
 
 - Python 3.8+
-- No external dependencies (stdlib only)
+- Core shell: no external dependencies (stdlib only)
+- Optional WebDAV mode: `wsgidav` + `cheroot` (can auto-install on first use)
 - New Nintendo 3DS / 3DS XL / 2DS XL with **microSD Management** enabled
   (System Settings → Data Management → microSD Management)
 - Both devices on the same WiFi network
@@ -45,6 +46,12 @@ python3 n3ds_smb
 
 # Explicit IP and name
 python3 n3ds_smb 192.168.1.42 3DS-MYNAME
+```
+
+Clear cached discovery entry:
+
+```bash
+python3 -m n3ds_smb --clear-cache
 ```
 
 Shell commands:
@@ -64,6 +71,53 @@ Shell commands:
 | `df` | Show total/used/free space |
 | `tree [path]` | Recursive directory listing |
 | `quit` | Exit |
+
+### WebDAV Hosting (Optional)
+
+Expose the 3DS share as a local WebDAV endpoint.
+
+```bash
+# Auto-discover + serve
+python3 -m n3ds_smb --webdav
+
+# Explicit IP and name
+python3 -m n3ds_smb 192.168.1.42 3DS-MYNAME --webdav
+```
+
+Default endpoint: `http://127.0.0.1:8080/` (localhost only).
+
+Useful flags:
+
+```bash
+# Read-only mode
+python3 -m n3ds_smb 192.168.1.42 3DS-MYNAME --webdav --readonly
+
+# Require basic auth
+python3 -m n3ds_smb 192.168.1.42 3DS-MYNAME --webdav --user alice --password secret
+
+# Custom bind + worker threads
+python3 -m n3ds_smb 192.168.1.42 3DS-MYNAME --webdav --host 127.0.0.1 --port 8080 --threads 4
+```
+
+First time you run `--webdav`, the CLI checks for optional dependencies and prompts before installing:
+
+```bash
+<python> -m pip install wsgidav cheroot
+```
+
+Disable auto-install behavior with:
+
+```bash
+python3 -m n3ds_smb 192.168.1.42 3DS-MYNAME --webdav --no-auto-install
+```
+
+If dependencies are missing and auto-install is disabled (or declined), install manually:
+
+```bash
+python3 -m pip install wsgidav cheroot
+```
+
+WebDAV operations covered by live tests include `OPTIONS`, `PROPFIND`, `GET`, `HEAD`, `PUT`, `COPY`, `MOVE`, `DELETE`, and recursive directory moves.
 
 ### Python API
 
@@ -141,7 +195,14 @@ See [exploits.md](exploits.md) for detailed findings from reverse-engineering th
 Tests run against a live 3DS:
 
 ```bash
+# SMB client live tests
 N3DS_IP=<your_3ds_ip> N3DS_NAME=<your_3ds_name> python3 -m unittest tests.test_3ds -v
+
+# WebDAV end-to-end live tests
+N3DS_IP=<your_3ds_ip> N3DS_NAME=<your_3ds_name> python3 -m unittest tests.test_webdav_e2e -v
+
+# Full live suite
+N3DS_IP=<your_3ds_ip> N3DS_NAME=<your_3ds_name> python3 -m unittest tests.test_3ds tests.test_webdav_e2e -v
 ```
 
 ## Project Structure
@@ -149,13 +210,15 @@ N3DS_IP=<your_3ds_ip> N3DS_NAME=<your_3ds_name> python3 -m unittest tests.test_3
 ```
 n3ds_smb/
   __init__.py    - Public API: N3DSClient, discover_3ds
-  __main__.py    - Entry point: python3 n3ds_smb [ip name]
+  __main__.py    - Entry point and optional WebDAV launcher
   transport.py   - SMB1 wire protocol: NBSS framing, headers, SMBTransport
   client.py      - N3DSClient: connect, auth, file operations
   discovery.py   - WS-Discovery based auto-discovery
   shell.py       - Interactive cmd.Cmd shell
+  webdav.py      - WsgiDAV provider exposing SMB share as WebDAV
 tests/
-  test_3ds.py    - 9 live integration tests
+  test_3ds.py         - Live SMB integration tests
+  test_webdav_e2e.py  - Live WebDAV end-to-end tests
 exploits.md      - Security research findings (11 discoveries)
 ```
 

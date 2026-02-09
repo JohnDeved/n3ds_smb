@@ -238,6 +238,17 @@ def _save_cache(ip, name):
         pass
 
 
+def clear_discovery_cache():
+    """Remove the cached discovery entry. Returns True if removed."""
+    try:
+        _CACHE_FILE.unlink()
+        return True
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------

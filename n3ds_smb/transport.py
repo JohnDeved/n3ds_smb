@@ -20,12 +20,14 @@ def nb_name(name, suffix=0x20):
 
 def recv_bytes(sock, n):
     """Read exactly n bytes from socket."""
-    buf = bytearray()
-    while len(buf) < n:
-        chunk = sock.recv(n - len(buf))
-        if not chunk:
+    buf = bytearray(n)
+    view = memoryview(buf)
+    pos = 0
+    while pos < n:
+        got = sock.recv_into(view[pos:])
+        if got <= 0:
             raise ConnectionError("connection closed")
-        buf += chunk
+        pos += got
     return bytes(buf)
 
 

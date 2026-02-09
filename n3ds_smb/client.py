@@ -18,18 +18,31 @@ class N3DSClient:
         self.ip, self.name, self.share = ip, name, share
         self.port, self.timeout = port, timeout
         self.t, self.uid, self.tid = None, 0, 0
+        self._write_chunk = 32768
+        self._read_chunk = 16384
 
     # -- connection lifecycle -----------------------------------------------
 
     def connect(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(self.timeout)
-        sock.connect((self.ip, self.port))
-        self._nb_session(sock)
-        self.t = SMBTransport(sock)
-        self._negotiate()
-        self._auth()
-        self._tree_connect()
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 256 * 1024)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 256 * 1024)
+        try:
+            sock.connect((self.ip, self.port))
+            self._nb_session(sock)
+            self.t = SMBTransport(sock)
+            self._negotiate()
+            self._auth()
+            self._tree_connect()
+        except Exception:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            self.t = None
+            raise
 
     def close(self):
         if self.t:
@@ -170,7 +183,7 @@ class N3DSClient:
         fid, total = self.open_file(remote), 0
         try:
             while True:
-                chunk = self.read(fid, total, min(self._max_buf - 64, 32768))
+                chunk = self.read(fid, total, self._read_chunk)
                 if not chunk:
                     break
                 fobj.write(chunk)
@@ -183,7 +196,7 @@ class N3DSClient:
         fid, total = self.open_file(remote, access=0x1F01BF, disp=5, share=0), 0
         try:
             while True:
-                chunk = fobj.read(min(self._max_buf - 128, 16384))
+                chunk = fobj.read(self._write_chunk)
                 if not chunk:
                     break
                 self.write(fid, chunk, total)
