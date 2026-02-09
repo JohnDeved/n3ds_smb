@@ -1,4 +1,4 @@
-"""N3DSClient — SMB1 file operations for the New Nintendo 3DS microSD share."""
+"""N3DSClient - SMB1 file operations for the New Nintendo 3DS microSD share."""
 
 import socket, struct
 

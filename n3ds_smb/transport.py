@@ -4,7 +4,7 @@ import os, socket, struct
 
 FLAGS2 = 0xC841
 
-# SPNEGO+NTLM Type1 — 3DS accepts immediately without credentials
+# SPNEGO+NTLM Type1 - 3DS accepts immediately without credentials
 AUTH_BLOB = bytes.fromhex(
     "604006062b0601050502a0363034a00e300c060a2b0601040182370202"
     "0aa22204204e544c4d5353500001000000050208a00000000000000000"

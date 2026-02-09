@@ -3,7 +3,7 @@
 import os, sys
 
 # When run as `python3 n3ds_smb`, Python sets __path__ to the package dir
-# but doesn't add the parent to sys.path — fix that for absolute imports.
+# but doesn't add the parent to sys.path - fix that for absolute imports.
 _pkg_dir = os.path.dirname(os.path.abspath(__file__))
 _parent = os.path.dirname(_pkg_dir)
 if _parent not in sys.path:

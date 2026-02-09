@@ -251,16 +251,16 @@ def _ask_name(ip):
             raise RuntimeError("no name provided")
         if _nb_probe(ip, name, timeout=2):
             return name
-        sys.stderr.write(f"  '{name}' rejected — check the name on the 3DS screen\n")
+        sys.stderr.write(f"  '{name}' rejected - check the name on the 3DS screen\n")
 
 
 def discover_3ds():
     """Find the 3DS IP and name. Returns (ip, name).
 
     Discovery order:
-      1. Cache — validate cached (ip, name) with a quick NetBIOS probe
-      2. WS-Discovery — multicast Probe + HTTP Get for name (~200ms)
-      3. User prompt — ask the user to type the name shown on the 3DS
+      1. Cache - validate cached (ip, name) with a quick NetBIOS probe
+      2. WS-Discovery - multicast Probe + HTTP Get for name (~200ms)
+      3. User prompt - ask the user to type the name shown on the 3DS
     """
     t0 = time.monotonic()
     sys.stderr.write("Scanning for 3DS...")
@@ -272,17 +272,17 @@ def discover_3ds():
         _save_cache(ip, name)
         return ip, name
 
-    # 1. Cache — instant if still valid
+    # 1. Cache - instant if still valid
     cached_ip, cached_name = _load_cache()
     if cached_ip and cached_name and _nb_probe(cached_ip, cached_name):
         return _done(cached_ip, cached_name, "cached")
 
-    # 2. WS-Discovery — active multicast probe
+    # 2. WS-Discovery - active multicast probe
     ip, name = _wsd_discover(timeout=3.0)
     if ip and name:
         return _done(ip, name, "WS-Discovery")
 
-    # 3. Fallback — user prompt
+    # 3. Fallback - user prompt
     # If we found the IP via cache but name changed, reuse the IP
     if cached_ip and _port_open(cached_ip):
         ip = cached_ip

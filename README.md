@@ -2,7 +2,7 @@
 
 Zero-dependency Python SMB1 client for the New Nintendo 3DS **microSD Management** feature.
 
-Automatically discovers the 3DS on your local network via WS-Discovery, connects to the microSD share over WiFi, and provides an interactive file browser shell — no configuration needed.
+Automatically discovers the 3DS on your local network via WS-Discovery, connects to the microSD share over WiFi, and provides an interactive file browser shell - no configuration needed.
 
 ## Quick Start
 
@@ -102,10 +102,10 @@ client.close()
 
 The tool discovers the 3DS using **WS-Discovery** (the same protocol Windows uses):
 
-1. **Cache check** (~10ms) — If we've connected before, validate the cached IP+name
-2. **WS-Discovery Probe** (~200-700ms) — Send a UDP multicast probe to `239.255.255.250:3702`. The 3DS responds with its endpoint URL
-3. **HTTP metadata fetch** (~30ms) — GET device metadata from the 3DS's DPWS HTTP endpoint (port 5357) which contains the NetBIOS name
-4. **Fallback** — If multicast doesn't work (e.g. network restrictions), prompt the user for the name shown on the 3DS screen
+1. **Cache check** (~10ms) - If we've connected before, validate the cached IP+name
+2. **WS-Discovery Probe** (~200-700ms) - Send a UDP multicast probe to `239.255.255.250:3702`. The 3DS responds with its endpoint URL
+3. **HTTP metadata fetch** (~30ms) - GET device metadata from the 3DS's DPWS HTTP endpoint (port 5357) which contains the NetBIOS name
+4. **Fallback** - If multicast doesn't work (e.g. network restrictions), prompt the user for the name shown on the 3DS screen
 
 The cache is stored at `~/.n3ds_smb_cache` for instant reconnection on subsequent runs.
 
@@ -113,16 +113,16 @@ The cache is stored at `~/.n3ds_smb_cache` for instant reconnection on subsequen
 
 The 3DS microSD Management exposes an **SMB1** file server on TCP port 139. This client implements the minimum SMB1 protocol needed:
 
-- **NetBIOS Session Service** — Session setup with the 3DS's name
-- **SMB_COM_NEGOTIATE** — Dialect negotiation (`NT LM 0.12`)
-- **SPNEGO/NTLM Auth** — The 3DS accepts any NTLM Type 1 blob without verifying credentials
-- **Tree Connect** — Connects to the `microSD` share
-- **File operations** — TRANS2 directory listing, NT_CREATE_ANDX, read, write, close
+- **NetBIOS Session Service** - Session setup with the 3DS's name
+- **SMB_COM_NEGOTIATE** - Dialect negotiation (`NT LM 0.12`)
+- **SPNEGO/NTLM Auth** - The 3DS accepts any NTLM Type 1 blob without verifying credentials
+- **Tree Connect** - Connects to the `microSD` share
+- **File operations** - TRANS2 directory listing, NT_CREATE_ANDX, read, write, close
 
 Notable quirks of the 3DS SMB implementation:
 - `SMB_COM_DELETE` and `SMB_COM_RENAME` work, but require strict Unicode alignment around `BufferFormat` bytes
-- Single TCP connection at a time — the 3DS only handles one client
-- Auth bypass — no credentials are ever verified
+- Single TCP connection at a time - the 3DS only handles one client
+- Auth bypass - no credentials are ever verified
 
 ## Security Research
 
@@ -148,15 +148,15 @@ N3DS_IP=<your_3ds_ip> N3DS_NAME=<your_3ds_name> python3 -m unittest tests.test_3
 
 ```
 n3ds_smb/
-  __init__.py    — Public API: N3DSClient, discover_3ds
-  __main__.py    — Entry point: python3 n3ds_smb [ip name]
-  transport.py   — SMB1 wire protocol: NBSS framing, headers, SMBTransport
-  client.py      — N3DSClient: connect, auth, file operations
-  discovery.py   — WS-Discovery based auto-discovery
-  shell.py       — Interactive cmd.Cmd shell
+  __init__.py    - Public API: N3DSClient, discover_3ds
+  __main__.py    - Entry point: python3 n3ds_smb [ip name]
+  transport.py   - SMB1 wire protocol: NBSS framing, headers, SMBTransport
+  client.py      - N3DSClient: connect, auth, file operations
+  discovery.py   - WS-Discovery based auto-discovery
+  shell.py       - Interactive cmd.Cmd shell
 tests/
-  test_3ds.py    — 9 live integration tests
-exploits.md      — Security research findings (11 discoveries)
+  test_3ds.py    - 9 live integration tests
+exploits.md      - Security research findings (11 discoveries)
 ```
 
 ## License
